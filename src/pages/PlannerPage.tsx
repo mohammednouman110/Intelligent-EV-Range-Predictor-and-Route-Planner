@@ -107,7 +107,7 @@ export default function PlannerPage() {
         start,
         destination,
         source_point: sourcePoint,
-        stops: stops.filter((s) => s.address.trim()).map((s) => ({ label: s.label, address: s.address })),
+        stops: stops.filter((s) => s.address.trim()),
         battery_percent: battery,
       });
       setResult(response);

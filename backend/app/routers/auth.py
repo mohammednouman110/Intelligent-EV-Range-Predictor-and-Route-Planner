@@ -29,7 +29,13 @@ def signup(payload: SignupRequest) -> AuthResponse:
             {"email": payload.email, "password": payload.password}
         )
     except Exception as exc:  # noqa: BLE001 — supabase client raises plain Exception for auth errors
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+        err_str = str(exc)
+        if "rate limit" in err_str.lower():
+            err_str = (
+                "Email rate limit exceeded (Supabase default limit is 4 signups/hour per IP). "
+                "Please wait a few minutes, log in with an existing account, or raise Rate Limits in your Supabase Auth settings."
+            )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, err_str) from exc
 
     if result.user is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-up failed")

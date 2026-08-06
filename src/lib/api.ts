@@ -20,7 +20,19 @@ export type AuthResult = {
 };
 
 function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  const raw = localStorage.getItem(TOKEN_KEY);
+  if (!raw) return null;
+  // Treat placeholder strings ("null", "undefined", whitespace) as no token at all.
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.toLowerCase() === "null" || trimmed.toLowerCase() === "undefined") {
+    localStorage.removeItem(TOKEN_KEY);
+    return null;
+  }
+  return raw;
+}
+
+function _isJwt(value: string): boolean {
+  return value.split(".").length === 3 && value.split(".").every((segment) => segment.length > 0);
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -40,6 +52,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       if (body?.detail) detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
     } catch {
       // ignore body parse errors, use the generic detail
+    }
+    // Any 401 means the stored token is dead — drop it so the next request is anonymous.
+    if (response.status === 401) {
+      clearSession();
     }
     throw new Error(detail);
   }
@@ -75,6 +91,7 @@ export function clearSession(): void {
 }
 
 function persistAuth(result: AuthResult): void {
+  if (!_isJwt(result.access_token)) return;
   localStorage.setItem(TOKEN_KEY, result.access_token);
   sessionStorage.setItem(PHONE_KEY, result.email);
 }
@@ -113,7 +130,7 @@ export async function getDriverProfile(_phoneNumber: string): Promise<DriverProf
   }>("/profile");
   return {
     name: data.name,
-    phone_number: data.phone_number,
+    phone_number: data.phone_number ?? "",
     vehicle_number: data.vehicle_number,
     vehicle_mode: data.vehicle_mode,
     language: data.language,

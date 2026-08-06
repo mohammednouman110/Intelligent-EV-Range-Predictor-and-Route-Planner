@@ -119,8 +119,20 @@ export default function LoginPage() {
               />
             </div>
             {error && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
+              <div className="space-y-2">
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+                {error.toLowerCase().includes("rate limit") && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                    <p className="font-semibold">How to fix email rate limit issue:</p>
+                    <ul className="mt-1 list-disc pl-4 space-y-1">
+                      <li><strong>Supabase Dashboard:</strong> Go to <em>Authentication &rarr; Rate Limits</em> and increase signups/hour limit.</li>
+                      <li><strong>Disable Confirmation:</strong> Go to <em>Authentication &rarr; Providers &rarr; Email</em> and turn off &quot;Confirm email&quot;.</li>
+                      <li><strong>Use Existing Account:</strong> Switch to &quot;Sign in&quot; using a previously created email.</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
             <Button type="submit" disabled={loading} className="h-12 w-full">

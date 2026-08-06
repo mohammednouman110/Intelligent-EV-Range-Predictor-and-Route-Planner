@@ -27,15 +27,24 @@ def get_user_client(jwt: str) -> Client:
     return client
 
 
+def _looks_like_jwt(token: str) -> bool:
+    """A JWT has three non-empty segments separated by dots."""
+    return token.count(".") == 2 and all(segment for segment in token.split("."))
+
+
 def current_user(authorization: str = Header(..., description="Bearer <jwt>")) -> dict:
     """Verify the bearer token with Supabase and return the user row."""
     if not authorization.lower().startswith("bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token")
     token = authorization.split(" ", 1)[1].strip()
+    if not token or token.lower() in {"null", "undefined"}:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token")
+    if not _looks_like_jwt(token):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token format")
     try:
         response = _service_client().auth.get_user(token)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"Invalid token: {exc}") from exc
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token") from exc
     if response.user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token")
     return {"id": response.user.id, "email": response.user.email, "jwt": token}
